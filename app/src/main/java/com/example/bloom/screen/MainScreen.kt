@@ -29,6 +29,7 @@ import com.google.gson.Gson
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
+import com.example.bloom.util.getCharacterResId
 
 fun getFlowerImageForEmotion(emotionId: Int): Int {
     return when (emotionId) {
@@ -43,6 +44,8 @@ fun getFlowerImageForEmotion(emotionId: Int): Int {
     }
 }
 
+
+
 @Composable
 fun MainScreen(
     navController: NavController,
@@ -53,9 +56,15 @@ fun MainScreen(
     val context = LocalContext.current
     var feedList by remember { mutableStateOf<List<FeedFlower>>(emptyList()) }
 
+    val token = PreferenceManager.getAccessToken()
+    val characterId = PreferenceManager.getCharacterId()
+
+    Log.d("MainScreen", "✅ 불러온 토큰: $token")
+    Log.d("MainScreen", "✅ 불러온 캐릭터 ID: $characterId")
+
     // 서버에서 감정별 피드 불러오기
     LaunchedEffect(Unit) {
-        val token = PreferenceManager.getAccessToken() ?: return@LaunchedEffect
+        if (token == null) return@LaunchedEffect
         val request = mapOf(
             "domain" to "story",
             "command" to "get_stories",
@@ -95,6 +104,18 @@ fun MainScreen(
         verticalArrangement = Arrangement.Bottom,
         horizontalAlignment = Alignment.End
     ) {
+        // 🔸 내 캐릭터 이미지 표시
+        characterId?.let {
+            Image(
+                painter = painterResource(id = getCharacterResId(it)),
+                contentDescription = "내 캐릭터",
+                modifier = Modifier
+                    .size(90.dp)
+                    .align(Alignment.Start)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+        }
+
         LazyVerticalGrid(
             columns = GridCells.Fixed(4),
             modifier = Modifier.weight(1f),
@@ -130,46 +151,29 @@ fun MainScreen(
                 onDismissRequest = { menuExpanded = false },
                 modifier = Modifier.width(250.dp)
             ) {
-                DropdownMenuItem(
-                    text = { Text("감정 달력", fontSize = 18.sp) },
-                    onClick = { menuExpanded = false }
-                )
-                DropdownMenuItem(
-                    text = { Text("친구", fontSize = 18.sp) },
-                    onClick = {
-                        menuExpanded = false
-                        navController.navigate("add_friend")
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("설정", fontSize = 18.sp) },
-                    onClick = { menuExpanded = false }
-                )
-                DropdownMenuItem(
-                    text = { Text("글 목록", fontSize = 18.sp) },
-                    onClick = {
-                        menuExpanded = false
-                        navController.navigate("post_list")
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("내 정보 수정", fontSize = 18.sp) },
-                    onClick = {
-                        menuExpanded = false
-                        navController.navigate("edit_profile")
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("감정 정원", fontSize = 18.sp) },
-                    onClick = {
-                        menuExpanded = false
-                        navController.navigate("emotion_garden")
-                    }
-                )
-                DropdownMenuItem(
-                    text = { Text("오늘 감정", fontSize = 18.sp) },
-                    onClick = { menuExpanded = false }
-                )
+                DropdownMenuItem(text = { Text("감정 달력", fontSize = 18.sp) }, onClick = { menuExpanded = false })
+                DropdownMenuItem(text = { Text("친구", fontSize = 18.sp) }, onClick = {
+                    menuExpanded = false
+                    navController.navigate("add_friend")
+                })
+                DropdownMenuItem(text = { Text("설정", fontSize = 18.sp) }, onClick = { menuExpanded = false })
+                DropdownMenuItem(text = { Text("글 목록", fontSize = 18.sp) }, onClick = {
+                    menuExpanded = false
+                    navController.navigate("post_list")
+                })
+                DropdownMenuItem(text = { Text("내 정보 수정", fontSize = 18.sp) }, onClick = {
+                    menuExpanded = false
+                    navController.navigate("edit_profile")
+                })
+                DropdownMenuItem(text = { Text("감정 정원", fontSize = 18.sp) }, onClick = {
+                    menuExpanded = false
+                    navController.navigate("emotion_garden")
+                })
+                DropdownMenuItem(text = { Text("다마고치", fontSize = 18.sp) }, onClick = {
+                    menuExpanded = false
+                    navController.navigate("tamagotchi")
+                })
+                DropdownMenuItem(text = { Text("오늘 감정", fontSize = 18.sp) }, onClick = { menuExpanded = false })
             }
         }
 

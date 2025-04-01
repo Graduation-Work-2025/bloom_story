@@ -32,6 +32,12 @@ fun AppNavigator() {
         composable("post_list") { PostListScreen(navController) }
         composable("edit_profile") { EditProfileScreen(navController) }
         composable("emotion_garden") { MyFeedGardenScreen(navController) }
+        composable("tamagotchi") { TamagotchiScreen(navController) }
+
+
+
+
+
 
     }
 }

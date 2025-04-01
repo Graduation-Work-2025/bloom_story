@@ -24,4 +24,13 @@ object PreferenceManager {
     fun clearAccessToken() {
         prefs.edit().remove(KEY_ACCESS_TOKEN).apply()
     }
+    fun setCharacterId(characterId: Int) {
+        prefs.edit().putInt("character_id", characterId).apply()
+    }
+
+    fun getCharacterId(): Int? {
+        val id = prefs.getInt("character_id", -1)
+        return if (id == -1) null else id
+    }
+
 }

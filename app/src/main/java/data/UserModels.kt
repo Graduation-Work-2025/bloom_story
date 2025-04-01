@@ -35,8 +35,10 @@ data class SignUpInfo(
     val nickname: String,
     val user_id: String,
     val password: String,
-    val phone: String
+    val phone: String,
+    val character_id: Int
 )
+
 
 // 회원가입 응답
 data class SignUpResponse(

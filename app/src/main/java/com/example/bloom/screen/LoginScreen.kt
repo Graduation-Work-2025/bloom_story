@@ -147,7 +147,7 @@ fun LoginScreen(navController: NavController) {
                 Log.d("WebSocketLogin", "📤 메시지 전송 시도 중...")
                 WebSocketManager.send(json)
 
-                // ✅ 서버 없이 테스트용으로 바로 메인으로 이동
+                //✅ 서버 없이 테스트용으로 바로 메인으로 이동
                 //navController.navigate("main")
             },
             modifier = Modifier.size(250.dp, 60.dp),
