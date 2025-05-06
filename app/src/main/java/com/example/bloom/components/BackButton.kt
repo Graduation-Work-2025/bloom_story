@@ -11,9 +11,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
 @Composable
-fun BackButton(navController: NavController) {
+fun BackButton(
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.wrapContentSize(),  // ✅ fillMaxWidth() 제거!
         contentAlignment = Alignment.TopStart
     ) {
         IconButton(onClick = { navController.popBackStack() }) {
@@ -25,3 +28,4 @@ fun BackButton(navController: NavController) {
         }
     }
 }
+

@@ -3,41 +3,38 @@ package com.example.bloom.ui.theme
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
+// ✅ 네가 원하는 초록 계열 색상
+private val BloomPrimary = Color(0xFF55996F)
+private val BloomSecondary = Color(0xFF82B69B) // 보조 초록색
+private val BloomTertiary = Color(0xFFCDEADF)  // 연한 포인트 색
+
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = BloomPrimary,
+    secondary = BloomSecondary,
+    tertiary = BloomTertiary,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = BloomPrimary,
+    secondary = BloomSecondary,
+    tertiary = BloomTertiary,
     onPrimary = Color.White,
     onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    onTertiary = Color.White
 )
 
 @Composable
 fun BloomTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // ⚠️ 강제 끔 (커스텀 컬러가 우선)
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

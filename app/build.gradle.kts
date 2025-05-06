@@ -49,15 +49,26 @@ dependencies {
     implementation("com.google.maps.android:maps-compose:2.11.4")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation("com.google.android.material:material:1.9.0")
+    implementation("androidx.compose.ui:ui-text:1.5.1")
+    implementation("androidx.compose.ui:ui-text:1.5.1")
+    implementation("com.squareup.retrofit2:converter-scalars:2.9.0")
 
     // ✅ Compose Core (UI & Material 3)
     implementation("androidx.compose.material3:material3:1.2.0") // Material3 최신버전
     implementation("androidx.compose.material:material-icons-extended:1.5.1") // 아이콘 라이브러리
-    implementation("androidx.compose.foundation:foundation:1.5.1") // LazyColumn 포함
+    implementation("androidx.compose.foundation:foundation:1.5.1") // L
+    // azyColumn 포함S
     implementation("androidx.compose.ui:ui-tooling-preview:1.5.1") // UI 미리보기 지원
     implementation("androidx.compose.runtime:runtime-livedata:1.5.1") // Runtime 지원
     implementation("androidx.navigation:navigation-compose:2.7.5") // Jetpack Navigation
     implementation("androidx.activity:activity-compose:1.8.2") // Activity Compose 지원
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation("io.coil-kt:coil-compose:2.2.2")
+
 
     // ✅ AndroidX Core (필수 라이브러리)
     implementation(libs.androidx.core.ktx)

@@ -46,6 +46,29 @@ data class SignUpResponse(
     val response: Any? // 회원가입은 응답이 null
 )
 
+//정보조회
+data class UserProfileResponse(
+    val id: Int,
+    val name: String,
+    val nickname: String,
+    val user_id: String,
+    val password: String,
+    val phone: String,
+    val character_id: Int,
+    val profileImage: String? = null
+
+
+)
+
+//정보 수정
+data class UpdateProfileRequestDto(
+    val name: String,
+    val nickname: String,
+    val password: String,
+    val phone: String,
+    val character_id: Int
+)
+
 // 공통 에러 응답
 data class ErrorResponse(
     val code: Int,

@@ -1,9 +1,13 @@
 package com.example.bloom.screen
 
+import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -16,50 +20,64 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.bloom.R
+import coil.compose.rememberAsyncImagePainter
 import com.example.bloom.data.StoryContent
 import com.example.bloom.data.StoryPostRequest
+import com.example.bloom.network.RetrofitInstance
 import com.example.bloom.network.WebSocketManager
 import com.example.bloom.util.PreferenceManager
+import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
-import com.google.gson.Gson
-
-fun getEmotionId(emotion: String): Int {
-    return when (emotion) {
-        "😊 행복" -> 1
-        "😢 슬픔" -> 2
-        "😡 화남" -> 3
-        "😂 웃김" -> 4
-        "😍 사랑" -> 5
-        "😎 여유" -> 6
-        "😴 졸림" -> 7
-        else -> 0
-    }
-}
+import java.io.File
+import java.io.IOException
 
 @Composable
 fun CreatePostScreen(navController: NavController) {
     var postContent by remember { mutableStateOf("") }
     var selectedEmotion by remember { mutableStateOf("선택 안됨") }
     var selectedPrivacy by remember { mutableStateOf("전체 공개") }
-    var selectedImage by remember { mutableStateOf<Int?>(null) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var imageUrl by remember { mutableStateOf<String?>(null) }
     var showEmotionPicker by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val gson = remember { Gson() }
+    val scope = rememberCoroutineScope()
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            selectedImageUri = it
+            scope.launch {
+                try {
+                    val uploadedUrl = uploadImage(context, it)
+                    imageUrl = uploadedUrl
+                    Toast.makeText(context, "이미지 업로드 성공", Toast.LENGTH_SHORT).show()
+                } catch (e: Exception) {
+                    Toast.makeText(context, "이미지 업로드 실패", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
@@ -68,7 +86,7 @@ fun CreatePostScreen(navController: NavController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(imageVector = Icons.Filled.Close, contentDescription = "닫기", modifier = Modifier.size(30.dp))
+                    Icon(Icons.Filled.Close, contentDescription = "닫기", modifier = Modifier.size(30.dp))
                 }
                 Spacer(modifier = Modifier.width(10.dp))
                 Text("새 스토리 작성", fontSize = 22.sp, color = Color.Black)
@@ -80,44 +98,25 @@ fun CreatePostScreen(navController: NavController) {
                 value = postContent,
                 onValueChange = { postContent = it },
                 label = { Text("내용을 입력하세요") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color(0xFF55996F),
-                    unfocusedIndicatorColor = Color.Gray,
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Gray,
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent
-                )
+                modifier = Modifier.fillMaxWidth().height(150.dp),
+                shape = RoundedCornerShape(12.dp)
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 10.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("감정 선택", fontSize = 18.sp, color = Color.Black)
-                Row {
-                    Button(onClick = { /* AI 분석 예정 */ }) { Text("AI 분석") }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Button(onClick = { showEmotionPicker = true }) { Text("감정 선택") }
-                }
+                Button(onClick = { showEmotionPicker = true }) { Text("감정 선택") }
             }
             Divider(color = Color.Gray, thickness = 1.dp)
 
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showPrivacyDialog = true }
-                    .padding(vertical = 10.dp),
+                modifier = Modifier.fillMaxWidth().clickable { showPrivacyDialog = true }.padding(vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text("공개 범위", fontSize = 18.sp, color = Color.Black)
@@ -128,21 +127,17 @@ fun CreatePostScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { }
-                    .padding(vertical = 10.dp),
+                modifier = Modifier.fillMaxWidth().clickable { launcher.launch("image/*") }.padding(vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("이미지 업로드", fontSize = 18.sp, color = Color.Black)
-                selectedImage?.let {
+                selectedImageUri?.let {
                     Image(
-                        painter = painterResource(id = it),
-                        contentDescription = "업로드된 이미지",
-                        modifier = Modifier
-                            .size(50.dp)
-                            .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                        painter = rememberAsyncImagePainter(it),
+                        contentDescription = null,
+                        modifier = Modifier.size(50.dp),
+                        contentScale = ContentScale.Crop
                     )
                 } ?: Text("선택 안됨", fontSize = 18.sp, color = Color.Gray)
             }
@@ -150,17 +145,11 @@ fun CreatePostScreen(navController: NavController) {
         }
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Button(
-                onClick = { navController.popBackStack() },
-                modifier = Modifier.weight(1f).height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
-            ) {
-                Text("취소", fontSize = 18.sp, color = Color.White)
+            Button(onClick = { navController.popBackStack() }, modifier = Modifier.weight(1f).height(50.dp)) {
+                Text("취소", fontSize = 18.sp)
             }
 
             Spacer(modifier = Modifier.width(10.dp))
@@ -181,7 +170,8 @@ fun CreatePostScreen(navController: NavController) {
                             longitude = 36.7637515,
                             latitude = 127.2819829,
                             sharing_type = if (selectedPrivacy == "전체 공개") "PUBLIC" else "FRIEND",
-                            emotion_id = getEmotionId(selectedEmotion)
+                            emotion_id = getEmotionId(selectedEmotion),
+                            image_url = imageUrl ?: ""
                         )
                     )
 
@@ -189,12 +179,10 @@ fun CreatePostScreen(navController: NavController) {
 
                     val listener = object : WebSocketListener() {
                         override fun onOpen(webSocket: WebSocket, response: Response) {
-                            Log.d("WebSocketPost", "✅ WebSocket 연결됨")
                             webSocket.send(json)
                         }
 
                         override fun onMessage(webSocket: WebSocket, text: String) {
-                            Log.d("WebSocketPost", "📩 서버 응답: $text")
                             Handler(Looper.getMainLooper()).post {
                                 Toast.makeText(context, "글 작성 완료!", Toast.LENGTH_SHORT).show()
                                 navController.popBackStack()
@@ -202,7 +190,6 @@ fun CreatePostScreen(navController: NavController) {
                         }
 
                         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                            Log.e("WebSocketPost", "연결 실패: ${t.message}")
                             Handler(Looper.getMainLooper()).post {
                                 Toast.makeText(context, "서버 연결 실패: ${t.message}", Toast.LENGTH_SHORT).show()
                             }
@@ -211,8 +198,7 @@ fun CreatePostScreen(navController: NavController) {
 
                     WebSocketManager.connect(listener)
                 },
-                modifier = Modifier.weight(1f).height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF55996F))
+                modifier = Modifier.weight(1f).height(50.dp)
             ) {
                 Text("심기", fontSize = 18.sp, color = Color.White)
             }
@@ -229,13 +215,10 @@ fun CreatePostScreen(navController: NavController) {
                         Text(
                             text = option,
                             fontSize = 18.sp,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedPrivacy = option
-                                    showPrivacyDialog = false
-                                }
-                                .padding(10.dp)
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                selectedPrivacy = option
+                                showPrivacyDialog = false
+                            }.padding(10.dp)
                         )
                     }
                 }
@@ -258,13 +241,10 @@ fun CreatePostScreen(navController: NavController) {
                         Text(
                             text = emotion,
                             fontSize = 24.sp,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedEmotion = emotion
-                                    showEmotionPicker = false
-                                }
-                                .padding(10.dp)
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                selectedEmotion = emotion
+                                showEmotionPicker = false
+                            }.padding(10.dp)
                         )
                     }
                 }
@@ -275,5 +255,35 @@ fun CreatePostScreen(navController: NavController) {
                 }
             }
         )
+    }
+}
+
+fun getEmotionId(emotion: String): Int {
+    return when (emotion) {
+        "😊 행복" -> 1
+        "😢 슬픔" -> 2
+        "😡 화남" -> 3
+        "😂 웃김" -> 4
+        "😍 사랑" -> 5
+        "😎 여유" -> 6
+        "😴 졸림" -> 7
+        else -> 0
+    }
+}
+
+suspend fun uploadImage(context: Context, uri: Uri): String {
+    val contentResolver = context.contentResolver
+    val stream = contentResolver.openInputStream(uri) ?: throw IOException("파일 열기 실패")
+    val requestBody = stream.readBytes().toRequestBody("image/*".toMediaTypeOrNull())
+
+    val part = MultipartBody.Part.createFormData(
+        "image", "uploaded_image.jpg", requestBody
+    )
+
+    val response = RetrofitInstance.api.uploadImage(part)
+    if (response.isSuccessful) {
+        return response.body()?.imageUrl ?: throw IOException("응답에 imageUrl 없음")
+    } else {
+        throw IOException("이미지 업로드 실패: ${response.code()}")
     }
 }

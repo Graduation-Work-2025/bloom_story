@@ -6,7 +6,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.example.bloom.screen.*
 
 @Composable
@@ -28,16 +30,18 @@ fun AppNavigator() {
         composable("signup") { SignUpScreen(navController) }
         composable("main") { MainScreen(navController, requestPermissionLauncher) }
         composable("create_post") { CreatePostScreen(navController) }
-        composable("add_friend") { AddFriendScreen(navController) }
-        composable("post_list") { PostListScreen(navController) }
         composable("edit_profile") { EditProfileScreen(navController) }
         composable("emotion_garden") { MyFeedGardenScreen(navController) }
-        composable("tamagotchi") { TamagotchiScreen(navController) }
+        composable("chatgpttest") { ChatGptTestScreen(navController) }
 
 
-
-
-
+        // ✅ 상세 글 보기 (PostDetail)
+        composable("post_detail/{storyId}") { backStackEntry ->
+            val storyId = backStackEntry.arguments?.getString("storyId")?.toIntOrNull()
+            storyId?.let {
+                PostDetailScreen(navController, it)
+            }
+        }
 
     }
 }

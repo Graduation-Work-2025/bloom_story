@@ -2,7 +2,6 @@ package com.example.bloom.screen
 
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.foundation.Image
@@ -25,11 +24,11 @@ import com.example.bloom.data.FeedFlower
 import com.example.bloom.data.StoryListResponse
 import com.example.bloom.network.WebSocketManager
 import com.example.bloom.util.PreferenceManager
+import com.example.bloom.util.getCharacterResId
 import com.google.gson.Gson
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
-import com.example.bloom.util.getCharacterResId
 
 fun getFlowerImageForEmotion(emotionId: Int): Int {
     return when (emotionId) {
@@ -44,25 +43,55 @@ fun getFlowerImageForEmotion(emotionId: Int): Int {
     }
 }
 
-
-
 @Composable
 fun MainScreen(
     navController: NavController,
     requestPermissionLauncher: ActivityResultLauncher<Array<String>>
 ) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    val gson = remember { Gson() }
-    val context = LocalContext.current
-    var feedList by remember { mutableStateOf<List<FeedFlower>>(emptyList()) }
+    val tabs = listOf("홈", "추천", "정원")
+    var selectedTabIndex by remember { mutableStateOf(0) }
 
+    Scaffold(
+        bottomBar = {
+            NavigationBar(containerColor = Color.White) {
+                tabs.forEachIndexed { index, title ->
+                    NavigationBarItem(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        icon = {},
+                        label = {
+                            Text(
+                                text = title,
+                                fontSize = 14.sp,
+                                color = if (selectedTabIndex == index) Color(0xFF55996F) else Color.Gray
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = Color(0x2255996F) // 연한 초록색 하이라이트
+                        )
+                    )
+                }
+            }
+        }
+    ) { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding)) {
+            when (selectedTabIndex) {
+                0 -> MainFeedContent()
+                1 -> ChatGptTestScreen(navController)
+                2 -> MyFeedGardenScreen(navController)
+            }
+        }
+    }
+}
+
+@Composable
+fun MainFeedContent() {
+    val context = LocalContext.current
+    val gson = remember { Gson() }
+    var feedList by remember { mutableStateOf<List<FeedFlower>>(emptyList()) }
     val token = PreferenceManager.getAccessToken()
     val characterId = PreferenceManager.getCharacterId()
 
-    Log.d("MainScreen", "✅ 불러온 토큰: $token")
-    Log.d("MainScreen", "✅ 불러온 캐릭터 ID: $characterId")
-
-    // 서버에서 감정별 피드 불러오기
     LaunchedEffect(Unit) {
         if (token == null) return@LaunchedEffect
         val request = mapOf(
@@ -101,10 +130,8 @@ fun MainScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.Bottom,
-        horizontalAlignment = Alignment.End
+        verticalArrangement = Arrangement.Top
     ) {
-        // 🔸 내 캐릭터 이미지 표시
         characterId?.let {
             Image(
                 painter = painterResource(id = getCharacterResId(it)),
@@ -131,62 +158,6 @@ fun MainScreen(
                         .padding(4.dp)
                 )
             }
-        }
-
-        // 🔹 메뉴 버튼
-        Box {
-            IconButton(
-                onClick = { menuExpanded = !menuExpanded },
-                modifier = Modifier.size(60.dp)
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_menu),
-                    contentDescription = "메뉴",
-                    modifier = Modifier.size(60.dp)
-                )
-            }
-
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false },
-                modifier = Modifier.width(250.dp)
-            ) {
-                DropdownMenuItem(text = { Text("감정 달력", fontSize = 18.sp) }, onClick = { menuExpanded = false })
-                DropdownMenuItem(text = { Text("친구", fontSize = 18.sp) }, onClick = {
-                    menuExpanded = false
-                    navController.navigate("add_friend")
-                })
-                DropdownMenuItem(text = { Text("설정", fontSize = 18.sp) }, onClick = { menuExpanded = false })
-                DropdownMenuItem(text = { Text("글 목록", fontSize = 18.sp) }, onClick = {
-                    menuExpanded = false
-                    navController.navigate("post_list")
-                })
-                DropdownMenuItem(text = { Text("내 정보 수정", fontSize = 18.sp) }, onClick = {
-                    menuExpanded = false
-                    navController.navigate("edit_profile")
-                })
-                DropdownMenuItem(text = { Text("감정 정원", fontSize = 18.sp) }, onClick = {
-                    menuExpanded = false
-                    navController.navigate("emotion_garden")
-                })
-                DropdownMenuItem(text = { Text("다마고치", fontSize = 18.sp) }, onClick = {
-                    menuExpanded = false
-                    navController.navigate("tamagotchi")
-                })
-                DropdownMenuItem(text = { Text("오늘 감정", fontSize = 18.sp) }, onClick = { menuExpanded = false })
-            }
-        }
-
-        // 🔹 글쓰기 버튼
-        IconButton(
-            onClick = { navController.navigate("create_post") },
-            modifier = Modifier.size(60.dp)
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_add),
-                contentDescription = "글 작성",
-                modifier = Modifier.size(60.dp)
-            )
         }
     }
 }
